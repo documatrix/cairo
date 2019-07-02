@@ -1251,7 +1251,8 @@ _cairo_pdf_surface_emit_group_resources (cairo_pdf_surface_t         *surface,
 	for (i = 0; i < num_resources; i++) {
 	    font = _cairo_array_index (&res->fonts, i);
 	    _cairo_output_stream_printf (surface->output,
-					 "      /f-%d-%d %d 0 R\n",
+					 "      /f-%s-%d-%d %d 0 R\n",
+                                        _cairo_unique_id(),
 					 font->font_id,
 					 font->subset_id,
 					 font->subset_resource.id);

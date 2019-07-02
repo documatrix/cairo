@@ -59,6 +59,9 @@ _cairo_init (cairo_t *cr,
 cairo_private void
 _cairo_fini (cairo_t *cr);
 
+cairo_private const char *
+_cairo_unique_id ();
+
 CAIRO_END_DECLS
 
 #endif /* CAIRO_PRIVATE_H */
