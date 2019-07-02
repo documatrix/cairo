@@ -49,6 +49,8 @@
 #include "cairo-surface-backend-private.h"
 
 #include <assert.h>
+#include <time.h>
+#include <unistd.h>
 
 /**
  * SECTION:cairo
@@ -4321,6 +4323,26 @@ cairo_append_path (cairo_t		*cr,
     status = cr->backend->append_path (cr, path);
     if (unlikely (status))
 	_cairo_set_error (cr, status);
+}
+
+/**
+ * _cairo_unique_id:
+ *
+ * Generates a unique id consisting of pid and timestamp.
+ * The unique id will only be generated once.
+ *
+ * Returns: the unique id.
+ *
+ * Since: 1.17
+ **/
+const char *
+_cairo_unique_id ()
+{
+    static char unique_id[40] = {0};
+    if (unique_id[0] == 0) {
+        snprintf (unique_id, sizeof (unique_id), "%0x%0x", getpid(), (unsigned)time(NULL));
+    }
+    return unique_id;
 }
 
 /**
