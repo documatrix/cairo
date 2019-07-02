@@ -48,6 +48,7 @@
 #include "cairo-path-fixed-private.h"
 #include "cairo-output-stream-private.h"
 #include "cairo-scaled-font-subsets-private.h"
+#include "cairo-private.h"
 
 static cairo_status_t
 _cairo_pdf_operators_end_text (cairo_pdf_operators_t    *pdf_operators);
@@ -1197,7 +1198,8 @@ _cairo_pdf_operators_set_font_subset (cairo_pdf_operators_t             *pdf_ope
     cairo_status_t status;
 
     _cairo_output_stream_printf (pdf_operators->stream,
-				 "/f-%d-%d 1 Tf\n",
+				 "/f-%s-%d-%d 1 Tf\n",
+				 _cairo_unique_id(),
 				 subset_glyph->font_id,
 				 subset_glyph->subset_id);
     if (pdf_operators->use_font_subset) {

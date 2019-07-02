@@ -75,6 +75,11 @@ cairo_ps_surface_create_for_stream (cairo_write_func_t	write_func,
 				    double		height_in_points);
 
 cairo_public void
+cairo_ps_surface_add_meta_stream (cairo_surface_t     *surface,
+                                  cairo_write_func_t   write_func,
+                                  void	              *closure);
+
+cairo_public void
 cairo_ps_surface_restrict_to_level (cairo_surface_t    *surface,
                                     cairo_ps_level_t    level);
 
