@@ -73,6 +73,7 @@ typedef struct cairo_ps_surface {
      * the header can be built and inserted into the target stream
      * before the contents of the temporary stream are copied). */
     cairo_output_stream_t *final_stream;
+    cairo_output_stream_t *meta_stream;
 
     FILE *tmpfile;
     cairo_output_stream_t *stream;
