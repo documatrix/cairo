@@ -80,6 +80,10 @@ cairo_ps_surface_add_meta_stream (cairo_surface_t     *surface,
                                   void	              *closure);
 
 cairo_public void
+cairo_ps_surface_set_add_font_prefix (cairo_surface_t    *surface,
+                                      cairo_bool_t add_font_refix);
+
+cairo_public void
 cairo_ps_surface_restrict_to_level (cairo_surface_t    *surface,
                                     cairo_ps_level_t    level);
 
