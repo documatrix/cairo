@@ -527,6 +527,87 @@ _cairo_ps_surface_emit_header (cairo_ps_surface_t *surface)
     }
 }
 
+/* Bob Jenkins hash
+ *
+ * Public domain code from:
+ *   http://burtleburtle.net/bob/hash/doobs.html
+ */
+
+#define HASH_MIX(a,b,c) 		\
+{ 					\
+    a -= b; a -= c; a ^= (c>>13);	\
+    b -= c; b -= a; b ^= (a<<8);	\
+    c -= a; c -= b; c ^= (b>>13);	\
+    a -= b; a -= c; a ^= (c>>12);	\
+    b -= c; b -= a; b ^= (a<<16);	\
+    c -= a; c -= b; c ^= (b>>5);	\
+    a -= b; a -= c; a ^= (c>>3);	\
+    b -= c; b -= a; b ^= (a<<10);	\
+    c -= a; c -= b; c ^= (b>>15);	\
+}
+
+static uint32_t
+_hash_data (const unsigned char *data, int length, uint32_t initval)
+{
+    uint32_t a, b, c, len;
+
+    len = length;
+    a = b = 0x9e3779b9;  /* the golden ratio; an arbitrary value */
+    c = initval;         /* the previous hash value */
+
+    while (len >= 12) {
+	a += (data[0] + ((uint32_t)data[1]<<8) + ((uint32_t)data[2]<<16) + ((uint32_t)data[3]<<24));
+	b += (data[4] + ((uint32_t)data[5]<<8) + ((uint32_t)data[6]<<16) + ((uint32_t)data[7]<<24));
+	c += (data[8] + ((uint32_t)data[9]<<8) + ((uint32_t)data[10]<<16)+ ((uint32_t)data[11]<<24));
+	HASH_MIX (a,b,c);
+	data += 12;
+	len -= 12;
+    }
+
+    c += length;
+    switch(len) {
+    case 11: c+= ((uint32_t) data[10] << 24);
+    case 10: c+= ((uint32_t) data[9] << 16);
+    case 9 : c+= ((uint32_t) data[8] << 8);
+    case 8 : b+= ((uint32_t) data[7] << 24);
+    case 7 : b+= ((uint32_t) data[6] << 16);
+    case 6 : b+= ((uint32_t) data[5] << 8);
+    case 5 : b+= data[4];
+    case 4 : a+= ((uint32_t) data[3] << 24);
+    case 3 : a+= ((uint32_t) data[2] << 16);
+    case 2 : a+= ((uint32_t) data[1] << 8);
+    case 1 : a+= data[0];
+    }
+    HASH_MIX (a,b,c);
+
+    return c;
+}
+
+static void
+_create_font_subset_tag (cairo_scaled_font_subset_t	*font_subset,
+			 const char 			*font_name,
+			 char				*tag)
+{
+    uint32_t hash;
+    int i;
+    long numerator;
+    ldiv_t d;
+
+    hash = _hash_data ((unsigned char *) font_name, strlen(font_name), 0);
+    hash = _hash_data ((unsigned char *) (font_subset->glyphs),
+		       font_subset->num_glyphs * sizeof(unsigned long), hash);
+
+    numerator = abs (hash);
+    for (i = 0; i < 6; i++) {
+	d = ldiv (numerator, 26);
+	numerator = d.quot;
+        tag[i] = 'A' + d.rem;
+    }
+    tag[i] = '+';
+    i++;
+    tag[i] = 0;
+}
+
 static cairo_status_t
 _cairo_ps_surface_emit_type1_font_subset (cairo_ps_surface_t		*surface,
 					  cairo_scaled_font_subset_t	*font_subset)
@@ -553,15 +634,24 @@ _cairo_ps_surface_emit_type1_font_subset (cairo_ps_surface_t		*surface,
 #endif
     start_position = surface->final_stream->position;
 
+    char tag[10];
+    if (surface->add_font_prefix) {
+        _create_font_subset_tag (font_subset, subset.base_font, tag);
+    } else {
+        tag[0] = 0;
+    }
+
     _cairo_output_stream_printf (surface->final_stream,
-				 "%%%%BeginResource: font %s\n",
+				 "%%%%BeginResource: font %s%s\n",
+				 tag,
 				 subset.base_font);
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "BeginResource %lu %lu %s\n",
+                                     "BeginResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.base_font);
 
     length = subset.header_length + subset.data_length + subset.trailer_length;
@@ -574,9 +664,10 @@ _cairo_ps_surface_emit_type1_font_subset (cairo_ps_surface_t		*surface,
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "EndResource %lu %lu %s\n",
+                                     "EndResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.base_font);
 
     _cairo_type1_subset_fini (&subset);
@@ -601,6 +692,13 @@ _cairo_ps_surface_emit_type1_font_fallback (cairo_ps_surface_t		*surface,
     if (unlikely (status))
 	return status;
 
+    char tag[10];
+    if (surface->add_font_prefix) {
+        _create_font_subset_tag (font_subset, subset.base_font, tag);
+    } else {
+        tag[0] = 0;
+    }
+
 #if DEBUG_PS
     _cairo_output_stream_printf (surface->final_stream,
 				 "%% _cairo_ps_surface_emit_type1_font_fallback\n");
@@ -608,14 +706,16 @@ _cairo_ps_surface_emit_type1_font_fallback (cairo_ps_surface_t		*surface,
     start_position = surface->final_stream->position;
 
     _cairo_output_stream_printf (surface->final_stream,
-				 "%%%%BeginResource: font %s\n",
+				 "%%%%BeginResource: font %s%s\n",
+				 tag,
 				 subset.base_font);
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "BeginResource %lu %lu %s\n",
+                                     "BeginResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.base_font);
 
     length = subset.header_length + subset.data_length + subset.trailer_length;
@@ -628,9 +728,10 @@ _cairo_ps_surface_emit_type1_font_fallback (cairo_ps_surface_t		*surface,
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "EndResource %lu %lu %s\n",
+                                     "EndResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.base_font);
 
     _cairo_type1_fallback_fini (&subset);
@@ -661,26 +762,36 @@ _cairo_ps_surface_emit_truetype_font_subset (cairo_ps_surface_t		*surface,
 #endif
     start_position = surface->final_stream->position;
 
+    char tag[10];
+    if (surface->add_font_prefix) {
+        _create_font_subset_tag (font_subset, subset.ps_name, tag);
+    } else {
+        tag[0] = 0;
+    }
+
     _cairo_output_stream_printf (surface->final_stream,
-				 "%%%%BeginResource: font %s\n",
+				 "%%%%BeginResource: font %s%s\n",
+				 tag,
 				 subset.ps_name);
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "BeginResource %lu %lu %s\n",
+                                     "BeginResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.ps_name);
 
     _cairo_output_stream_printf (surface->final_stream,
 				 "11 dict begin\n"
 				 "/FontType 42 def\n"
-				 "/FontName /%s def\n"
+				 "/FontName /%s%s def\n"
 				 "/PaintType 0 def\n"
 				 "/FontMatrix [ 1 0 0 1 0 0 ] def\n"
 				 "/FontBBox [ 0 0 0 0 ] def\n"
 				 "/Encoding 256 array def\n"
 				 "0 1 255 { Encoding exch /.notdef put } for\n",
+				 tag,
 				 subset.ps_name);
 
     /* FIXME: Figure out how subset->x_max etc maps to the /FontBBox */
@@ -760,9 +871,10 @@ _cairo_ps_surface_emit_truetype_font_subset (cairo_ps_surface_t		*surface,
 
     if (surface->meta_stream != NULL)
         _cairo_output_stream_printf (surface->meta_stream,
-                                     "EndResource %lu %lu %s\n",
+                                     "EndResource %lu %lu %s%s\n",
                                      start_position,
                                      surface->final_stream->position,
+                                     tag,
                                      subset.ps_name);
 
     _cairo_truetype_subset_fini (&subset);
@@ -1302,6 +1414,7 @@ _cairo_ps_surface_create_for_stream_internal (cairo_output_stream_t *stream,
 	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
 	goto CLEANUP_OUTPUT_STREAM;
     }
+    surface->add_font_prefix = FALSE;
 
     _cairo_scaled_font_subsets_enable_latin_subset (surface->font_subsets, TRUE);
     surface->has_creation_date = FALSE;
@@ -1556,6 +1669,27 @@ cairo_ps_surface_add_meta_stream (cairo_surface_t    *surface,
      }
 
      ps_surface->meta_stream = stream;
+}
+
+/**
+* cairo_ps_surface_set_add_font_prefix:
+ * @surface: a PostScript #cairo_surface_t
+ * @add_font_refix: a #cairo_bool_t Ths specifies if font names should get prefixed.
+ *
+ * Adds a hash before all font names
+ *
+ * Since: 1.17
+ **/
+void
+cairo_ps_surface_set_add_font_prefix (cairo_surface_t    *surface,
+                                  cairo_bool_t add_font_refix)
+{
+    cairo_ps_surface_t *ps_surface = NULL;
+
+    if (! _extract_ps_surface (surface, TRUE, &ps_surface))
+        return;
+
+    ps_surface->add_font_prefix = add_font_refix;
 }
 
 /**
