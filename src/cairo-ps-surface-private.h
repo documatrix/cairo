@@ -101,6 +101,7 @@ typedef struct cairo_ps_surface {
     time_t creation_date;
 
     cairo_scaled_font_subsets_t *font_subsets;
+    cairo_bool_t add_font_prefix;
 
     cairo_list_t document_media;
     cairo_array_t dsc_header_comments;
