@@ -458,10 +458,19 @@ _cairo_ps_surface_emit_header (cairo_ps_surface_t *surface)
 				 "/g { setgray } bind def\n"
 				 "/rg { setrgbcolor } bind def\n"
 				 "/d1 { setcachedevice } bind def\n"
+				 "/concatstrings %% (a) (b) -> (ab)  \n"
+				 "   { exch dup length\n"
+				 "     2 index length add string\n"
+				 "     dup dup 4 2 roll copy length\n"
+				 "     4 -1 roll putinterval\n"
+				 " } bind def\n"
 				 "/cairo_data_source {\n"
-				 "  CairoDataIndex CairoData length lt\n"
-				 "    { CairoData CairoDataIndex get /CairoDataIndex CairoDataIndex 1 add def }\n"
-				 "    { () } ifelse\n"
+				 "	dup\n"
+				 "	/_x_idx exch (CairoDataIndex) exch concatstrings cvn store \n"
+				 "	/_x_data exch (CairoData) exch concatstrings cvn store \n"
+				 "	_x_idx load _x_data load length lt\n"
+				 "		{ _x_data load _x_idx load get _x_idx _x_idx load 1 add def }\n"
+				 "		{ () } ifelse\n"
 				 "} def\n"
 				 "/cairo_flush_ascii85_file { cairo_ascii85_file status { cairo_ascii85_file flushfile } if } def\n"
 				 "/cairo_image { image cairo_flush_ascii85_file } def\n"
@@ -1420,6 +1429,7 @@ _cairo_ps_surface_create_for_stream_internal (cairo_output_stream_t *stream,
     _cairo_array_init (&surface->recording_surf_stack, sizeof (unsigned int));
 
     surface->num_forms = 0;
+    surface->pattern_stack = 0;
     surface->forms = _cairo_hash_table_create (_cairo_ps_form_equal);
     if (unlikely (surface->forms == NULL)) {
 	status = _cairo_error (CAIRO_STATUS_NO_MEMORY);
@@ -3090,7 +3100,8 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t          *surface,
 	/* Emit the image data as a base85-encoded string which will
 	 * be used as the data source for the image operator later. */
 	_cairo_output_stream_printf (surface->stream,
-				     "/CairoData [\n");
+				     "/CairoData%d [\n",
+				     surface->pattern_stack);
 
 	status = _cairo_ps_surface_emit_base85_string (surface,
 						       data,
@@ -3103,7 +3114,8 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t          *surface,
 	_cairo_output_stream_printf (surface->stream,
 				     "] def\n");
 	_cairo_output_stream_printf (surface->stream,
-				     "/CairoDataIndex 0 def\n");
+				     "/CairoDataIndex%d 0 def\n",
+				     surface->pattern_stack);
     } else {
 	_cairo_output_stream_printf (surface->stream,
 				     "/cairo_ascii85_file currentfile /ASCII85Decode filter def\n");
@@ -3131,7 +3143,8 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t          *surface,
 
 	if (surface->paint_proc) {
 	    _cairo_output_stream_printf (surface->stream,
-					 "    /DataSource { cairo_data_source } /%s filter\n",
+					 "    /DataSource { (%d) cairo_data_source } /%s filter\n",
+					 surface->pattern_stack,
 					 compress_filter);
 	} else {
 	    _cairo_output_stream_printf (surface->stream,
@@ -3192,7 +3205,8 @@ _cairo_ps_surface_emit_image (cairo_ps_surface_t          *surface,
 				     decode);
 	if (surface->paint_proc) {
 	    _cairo_output_stream_printf (surface->stream,
-					 "  /DataSource { cairo_data_source } /%s filter\n",
+					 "  /DataSource { (%d) cairo_data_source } /%s filter\n",
+					 surface->pattern_stack,
 					 compress_filter);
 	} else {
 	    _cairo_output_stream_printf (surface->stream,
@@ -3329,7 +3343,7 @@ _cairo_ps_surface_emit_jpeg_image (cairo_ps_surface_t          *surface,
 
     if (surface->paint_proc) {
 	_cairo_output_stream_printf (surface->stream,
-				     "  /DataSource { cairo_data_source } /DCTDecode filter\n");
+				     "  /DataSource { () cairo_data_source } /DCTDecode filter\n");
     } else {
 	_cairo_output_stream_printf (surface->stream,
 				     "  /DataSource cairo_ascii85_file /DCTDecode filter\n");
@@ -3446,7 +3460,7 @@ _cairo_ps_surface_emit_ccitt_image (cairo_ps_surface_t          *surface,
 
     if (surface->paint_proc) {
 	_cairo_output_stream_printf (surface->stream,
-				     "  /DataSource { cairo_data_source }\n");
+				     "  /DataSource { () cairo_data_source }\n");
     } else {
 	_cairo_output_stream_printf (surface->stream,
 				     "  /DataSource cairo_ascii85_file\n");
@@ -4457,6 +4471,7 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
 				 "q %d %d %d %d rectclip\n",
 				 pattern_extents.x, pattern_extents.y,
 				 pattern_extents.width, pattern_extents.height);
+    surface->pattern_stack ++;
 
     if (extend == CAIRO_EXTEND_REPEAT || extend == CAIRO_EXTEND_REFLECT)
 	src_op_extents = pattern_extents;
@@ -4495,6 +4510,7 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
     if (unlikely (status))
 	goto release_source;
 
+    surface->pattern_stack --;
     _cairo_output_stream_printf (surface->stream,
 				 " Q } bind def\n");
 
