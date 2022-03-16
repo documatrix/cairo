@@ -122,6 +122,7 @@ typedef struct cairo_ps_surface {
     cairo_hash_table_t *forms;
     int num_forms;
     long total_form_size;
+    int pattern_stack;
 } cairo_ps_surface_t;
 
 #endif /* CAIRO_PS_SURFACE_PRIVATE_H */
