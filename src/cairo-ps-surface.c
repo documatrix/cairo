@@ -4464,6 +4464,13 @@ _cairo_ps_surface_emit_surface_pattern (cairo_ps_surface_t      *surface,
 	ystep = 0;
     }
 
+    if (surface->pattern_stack > 0) {
+        _cairo_output_stream_printf (surface->stream,
+				 "%% RECURSIVE_CAIRO_PATTERN:%d\n",
+				 surface->pattern_stack
+				);
+    }
+
     _cairo_output_stream_printf (surface->stream,
 				 "/CairoPattern {\n"
 				 "q %d %d %d %d rectclip\n",
