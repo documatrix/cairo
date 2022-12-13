@@ -85,6 +85,7 @@ _jpeg_extract_info (cairo_image_info_t *info, const unsigned char *p)
     info->height = (p[4] << 8) + p[5];
     info->num_components = p[8];
     info->bits_per_component = p[3];
+    info->jpeg_frame_marker = p[0];
 }
 
 cairo_int_status_t
