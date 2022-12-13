@@ -3327,6 +3327,9 @@ _cairo_ps_surface_emit_jpeg_image (cairo_ps_surface_t          *surface,
 	return CAIRO_STATUS_SUCCESS;
     }
 
+    _cairo_output_stream_printf (surface->stream,
+                                 "%% JPEG_FRAME_MARKER: %02X\n", info.jpeg_frame_marker);
+
     if (surface->paint_proc) {
 	/* Emit the image data as a base85-encoded string which will
 	 * be used as the data source for the image operator later. */
