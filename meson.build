@@ -484,7 +484,7 @@ if host_machine.system() == 'darwin' and not get_option('quartz').disabled()
   endif
 endif
 
-if host_machine.system() == 'windows'
+if host_machine.system() == 'windows' and not get_option('win32').disabled()
   add_languages('cpp', native: false)
 
   add_project_arguments('-DWIN32_LEAN_AND_MEAN', '-DNOMINMAX', language: ['c', 'cpp'])
