@@ -1777,7 +1777,8 @@ _cairo_type1_subset_init (cairo_type1_subset_t		*type1_subset,
     if (font.base.base_font) {
 	type1_subset->base_font = strdup (font.base.base_font);
     } else {
-        snprintf(buf, sizeof (buf), "CairoFont-%u-%u",
+        snprintf(buf, sizeof (buf), "f-%s-%u-%u",
+				 _cairo_unique_id(),
                  scaled_font_subset->font_id, scaled_font_subset->subset_id);
 	type1_subset->base_font = strdup (buf);
     }

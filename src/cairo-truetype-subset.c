@@ -253,7 +253,8 @@ _cairo_truetype_font_create (cairo_scaled_font_subset_t  *scaled_font_subset,
             goto fail3;
 	}
 
-        snprintf(font->base.ps_name, 30, "CairoFont-%u-%u",
+        snprintf(font->base.ps_name, 30, "f-%s-%u-%u",
+                 _cairo_unique_id(),
                  scaled_font_subset->font_id,
                  scaled_font_subset->subset_id);
     }

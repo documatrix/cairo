@@ -6243,7 +6243,8 @@ _cairo_pdf_surface_emit_cff_font_subset (cairo_pdf_surface_t	     *surface,
     cairo_cff_subset_t subset;
     char name[64];
 
-    snprintf (name, sizeof name, "CairoFont-%d-%d",
+    snprintf (name, sizeof name, "f-%s-%d-%d",
+			  _cairo_unique_id(),
               font_subset->font_id, font_subset->subset_id);
     status = _cairo_cff_subset_init (&subset, name, font_subset);
     if (unlikely (status))
@@ -6269,7 +6270,8 @@ _cairo_pdf_surface_emit_cff_fallback_font (cairo_pdf_surface_t	       *surface,
     if (!font_subset->is_composite && !font_subset->is_latin)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
-    snprintf (name, sizeof name, "CairoFont-%d-%d",
+    snprintf (name, sizeof name, "f-%s-%d-%d",
+			  _cairo_unique_id(),
               font_subset->font_id, font_subset->subset_id);
     status = _cairo_cff_fallback_init (&subset, name, font_subset);
     if (unlikely (status))
@@ -6436,7 +6438,8 @@ _cairo_pdf_surface_emit_type1_font_subset (cairo_pdf_surface_t		*surface,
     if (font_subset->is_composite && !font_subset->is_latin)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
-    snprintf (name, sizeof name, "CairoFont-%d-%d",
+    snprintf (name, sizeof name, "f-%s-%d-%d",
+		  _cairo_unique_id(),
 	      font_subset->font_id, font_subset->subset_id);
     status = _cairo_type1_subset_init (&subset, name, font_subset, FALSE);
     if (unlikely (status))
@@ -6460,7 +6463,8 @@ _cairo_pdf_surface_emit_type1_fallback_font (cairo_pdf_surface_t	*surface,
     if (font_subset->is_composite && !font_subset->is_latin)
 	return CAIRO_INT_STATUS_UNSUPPORTED;
 
-    snprintf (name, sizeof name, "CairoFont-%d-%d",
+    snprintf (name, sizeof name, "f-%s-%d-%d",
+		  _cairo_unique_id(),
 	      font_subset->font_id, font_subset->subset_id);
     status = _cairo_type1_fallback_init_binary (&subset, name, font_subset);
     if (unlikely (status))

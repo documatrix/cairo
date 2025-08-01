@@ -2600,7 +2600,8 @@ cairo_cff_font_generate (cairo_cff_font_t  *font,
         if (unlikely (font->ps_name == NULL))
 	    return _cairo_error (CAIRO_STATUS_NO_MEMORY);
 
-        snprintf(font->ps_name, 30, "CairoFont-%u-%u",
+        snprintf(font->ps_name, 30, "f-%s-%u-%u",
+                 _cairo_unique_id(),
                  font->scaled_font_subset->font_id,
                  font->scaled_font_subset->subset_id);
     }
@@ -3279,7 +3280,8 @@ cairo_cff_font_fallback_generate (cairo_cff_font_t           *font,
     /* Create Top Dict */
     font->is_cid = FALSE;
 
-    snprintf((char*)buf, sizeof(buf), "CairoFont-%u-%u",
+    snprintf((char*)buf, sizeof(buf), "f-%s-%u-%u",
+	     _cairo_unique_id(),
 	     font->scaled_font_subset->font_id,
 	     font->scaled_font_subset->subset_id);
     sid = NUM_STD_STRINGS + _cairo_array_num_elements (&font->strings_subset_index);
