@@ -593,8 +593,8 @@ _hash_data (const unsigned char *data, int length, uint32_t initval)
 }
 
 static void
-_create_font_subset_tag (cairo_scaled_font_subset_t	*font_subset,
-			 const char 			*font_name,
+_create_font_subset_tag (char				*data,
+			 unsigned long			data_length,
 			 char				*tag)
 {
     uint32_t hash;
@@ -602,9 +602,7 @@ _create_font_subset_tag (cairo_scaled_font_subset_t	*font_subset,
     long numerator;
     ldiv_t d;
 
-    hash = _hash_data ((unsigned char *) font_name, strlen(font_name), 0);
-    hash = _hash_data ((unsigned char *) (font_subset->glyphs),
-		       font_subset->num_glyphs * sizeof(unsigned long), hash);
+    hash = _hash_data ((unsigned char *) data, data_length, 0);
 
     numerator = abs (hash);
     for (i = 0; i < 6; i++) {
@@ -645,7 +643,7 @@ _cairo_ps_surface_emit_type1_font_subset (cairo_ps_surface_t		*surface,
 
     char tag[10];
     if (surface->add_font_prefix) {
-        _create_font_subset_tag (font_subset, subset.base_font, tag);
+        _create_font_subset_tag (subset.data, subset.data_length, tag);
     } else {
         tag[0] = 0;
     }
@@ -703,7 +701,7 @@ _cairo_ps_surface_emit_type1_font_fallback (cairo_ps_surface_t		*surface,
 
     char tag[10];
     if (surface->add_font_prefix) {
-        _create_font_subset_tag (font_subset, subset.base_font, tag);
+        _create_font_subset_tag (subset.data, subset.data_length, tag);
     } else {
         tag[0] = 0;
     }
@@ -773,7 +771,7 @@ _cairo_ps_surface_emit_truetype_font_subset (cairo_ps_surface_t		*surface,
 
     char tag[10];
     if (surface->add_font_prefix) {
-        _create_font_subset_tag (font_subset, subset.ps_name, tag);
+        _create_font_subset_tag (subset.data, subset.data_length, tag);
     } else {
         tag[0] = 0;
     }
