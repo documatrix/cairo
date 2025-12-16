@@ -559,7 +559,7 @@ _cairo_ps_surface_emit_header (cairo_ps_surface_t *surface)
 }
 
 static uint32_t
-_hash_data (const unsigned char *data, int length, uint32_t initval)
+_hash_data (const unsigned char *data, unsigned long length, uint32_t initval)
 {
     uint32_t a, b, c, len;
 
@@ -596,9 +596,9 @@ _hash_data (const unsigned char *data, int length, uint32_t initval)
 }
 
 static void
-_create_font_subset_tag (char				*data,
-			 unsigned long			data_length,
-			 char				*tag)
+_create_font_subset_tag (const char 	*data,
+			 unsigned long	data_length,
+			 char		*tag)
 {
     uint32_t hash;
     int i;
