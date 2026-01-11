@@ -61,6 +61,8 @@
 #include <math.h>
 #include <limits.h>
 #include <stdio.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "cairo.h"
 #include <pixman.h>
@@ -940,6 +942,9 @@ _cairo_get_locale_decimal_point (void);
 
 cairo_private double
 _cairo_strtod (const char *nptr, char **endptr);
+
+cairo_private const char *
+_cairo_unique_id (void);
 
 #ifdef HAVE_STRNDUP
 #define _cairo_strndup strndup

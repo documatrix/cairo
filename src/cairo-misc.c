@@ -1212,3 +1212,23 @@ _cairo_intern_string_reset_static_data (void)
     }
     CAIRO_MUTEX_UNLOCK (_cairo_intern_string_mutex);
 }
+
+/**
+ * _cairo_unique_id:
+ *
+ * Generates a unique id consisting of pid and timestamp.
+ * The unique id will only be generated once.
+ *
+ * Returns: the unique id.
+ *
+ * Since: 1.17
+ **/
+const char *
+_cairo_unique_id ()
+{
+    static char unique_id[40] = {0};
+    if (unique_id[0] == 0) {
+        snprintf (unique_id, sizeof (unique_id), "%0x%0x", getpid(), (unsigned)time(NULL));
+    }
+    return unique_id;
+}
